@@ -48,13 +48,13 @@ func SubscribeJSON[T any](
 		for msg := range deliveries {
 			var data T
 			if err := json.Unmarshal(msg.Body, &data); err != nil {
-				fmt.Printf("Couldn't unmarshal msg: %v", err)
+				fmt.Printf("Couldn't unmarshal msg: %v\n", err)
 				continue
 			}
 			handler(data)
 			err := msg.Ack(false)
 			if err != nil {
-				fmt.Printf("Couldn't Ack msg: %v", err)
+				fmt.Printf("Couldn't Ack msg: %v\n", err)
 			}
 		}
 	}()
