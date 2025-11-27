@@ -38,6 +38,19 @@ func main() {
 
 	fmt.Printf("Queue %v declared and bound!\n", queue.Name)
 
+	_, warQueue, err := pubsub.DeclareAndBind(
+		rmq,
+		routing.ExchangePerilTopic,
+		routing.WarRecognitionsPrefix,
+		routing.WarRecognitionsPrefix+".*",
+		pubsub.SimpleQueueDurable,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Queue %v declared and bound!\n", warQueue.Name)
+
 	gameState := gamelogic.NewGameState(user)
 
 	if err := pubsub.SubscribeJSON(
@@ -57,7 +70,18 @@ func main() {
 		routing.ArmyMovesPrefix+"."+user,
 		routing.ArmyMovesPrefix+".*",
 		pubsub.SimpleQueueTransient,
-		handlerMove(gameState),
+		handlerMove(gameState, ch),
+	); err != nil {
+		log.Fatal(err)
+	}
+
+	if err := pubsub.SubscribeJSON(
+		rmq,
+		routing.ExchangePerilTopic,
+		routing.WarRecognitionsPrefix,
+		routing.WarRecognitionsPrefix+".*",
+		pubsub.SimpleQueueDurable,
+		handlerWarMsg(gameState),
 	); err != nil {
 		log.Fatal(err)
 	}
@@ -98,30 +122,5 @@ func main() {
 		default:
 			fmt.Println("Unknown command.")
 		}
-	}
-}
-
-func handlerPause(gs *gamelogic.GameState) func(routing.PlayingState) pubsub.AckType {
-	return func(ps routing.PlayingState) pubsub.AckType {
-		defer fmt.Print("> ")
-		gs.HandlePause(ps)
-		return pubsub.Ack
-	}
-}
-
-func handlerMove(gs *gamelogic.GameState) func(gamelogic.ArmyMove) pubsub.AckType {
-	return func(move gamelogic.ArmyMove) pubsub.AckType {
-		defer fmt.Print("> ")
-		mv := gs.HandleMove(move)
-		switch mv {
-		case gamelogic.MoveOutComeSafe:
-			return pubsub.Ack
-		case gamelogic.MoveOutcomeMakeWar:
-			return pubsub.Ack
-		case gamelogic.MoveOutcomeSamePlayer:
-			return pubsub.NackDiscard
-		}
-		fmt.Println("error: unknown move outcome")
-		return pubsub.NackDiscard
 	}
 }
