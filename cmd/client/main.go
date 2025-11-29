@@ -81,7 +81,7 @@ func main() {
 		routing.WarRecognitionsPrefix,
 		routing.WarRecognitionsPrefix+".*",
 		pubsub.SimpleQueueDurable,
-		handlerWarMsg(gameState),
+		handlerWarMsg(gameState, ch),
 	); err != nil {
 		log.Fatal(err)
 	}
