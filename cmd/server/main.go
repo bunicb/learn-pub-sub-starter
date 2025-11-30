@@ -39,6 +39,17 @@ func main() {
 
 	gamelogic.PrintServerHelp()
 
+	if err := pubsub.SubscribeGob(
+		rmq,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug+".*",
+		pubsub.SimpleQueueDurable,
+		handlerLogs(),
+	); err != nil {
+		log.Fatal(err)
+	}
+
 	for {
 		input := gamelogic.GetInput()
 		if len(input) == 0 {
